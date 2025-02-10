@@ -36,8 +36,10 @@ impl Data {
     fn part2(&mut self) -> usize {
         let  mut result = 0;
         let mut total = 0;
-
+        let s = self.nums.clone().into_iter().collect::<String>();
         let mut enabled = true;
+
+        //println!("{}", s);
 
         for i in 0..self.nums.len() {
             (result, enabled) = process_conditional(&self.nums[i], enabled);
