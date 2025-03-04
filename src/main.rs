@@ -2,135 +2,97 @@
 use std::fs::File;
 use std::io::BufReader;
 use std::io::BufRead;
-
+use std::collections::HashMap;
+use std::collections::HashSet;
 struct Data {
-    grid: Vec<Vec<char>>, 
-
+    update: Vec<Vec<u64>>, 
+    rules : HashMap<u64, HashSet<u64>>
 }
-
-const DIR: [(i64, i64); 8] = [(0,-1),(0, 1),(1, 0),(-1, 0),(1, 1),(-1, 1),(-1,-1),(1,-1)];
-const LETTERS: [char;4] = ['X', 'M', 'A', 'S'];
-
-const DIR_LEFT_DIAGONAL: [(i64, i64); 2] = [(1, -1),(-1, 1)];
-const DIR_RIGHT_DIAGONAL: [(i64, i64); 2] = [(1, 1),(-1,-1)];
 
 impl Data {
     fn new() -> Self {
-        Data { grid: Vec::new()}
+        Data { update: Vec::new(), rules: HashMap::new()}
     }
 
     fn parse(&mut self) {
-        let f = File::open("inputs\\input_day4.txt").unwrap();
+        let f = File::open("inputs\\input_day5.txt").unwrap();
         let reader = BufReader::new(&f);
 
         for line in reader.lines() {
-            self.grid.push(line.unwrap().chars().collect());
+
+            if let Some((left, right)) = line.as_ref().unwrap().split_once("|") {
+                let left = left.parse::<u64>().unwrap();
+                let right = right.parse::<u64>().unwrap();
+
+                let e = self.rules.entry(right).or_default();
+                e.insert(left);
+                continue
+                
+            }
+
+            if line.as_ref().unwrap().len() == 0 {
+                continue
+            }
+
+            self.update.push(line.unwrap().split(",").map(|e| e.parse::<u64>().unwrap()).collect());
         }
 
-        //println!("{}", self.nums.len());
+        //println!("{:?}", self.rules);
     }
 
-    fn part1(&mut self) -> usize {
+    fn part1(&mut self) -> u64 {
         
         let mut total = 0;
 
-        for row in 0..self.grid.len() {
-            for col in 0..self.grid[row].len() {
-                for dir in DIR {
-                    total += self.find_target(row as i64, col as i64, dir) as usize;
+        'next: for update in &self.update {
+
+            for i in 0..update.len() - 1 {
+                for j in i + 1..update.len() {
+                    if let Some(hs) = self.rules.get(&update[i]) {
+                        if hs.contains(&update[j]) {
+                            continue 'next
+                        }
+                    }
                 }
             }
+
+            let middle = update.len()/2;
+            total += update[middle];
         }
 
         total
     }
 
-    fn part2(&mut self) -> usize {
+    fn part2(&mut self) -> u64 {
 
-        let mut total = 0; 
-        let mut letter_dict = std::collections::HashMap::new();
-        letter_dict.insert('M', true);
-        letter_dict.insert('S', true);
+        let mut total = 0;
+        let mut unordered = false;
 
-        for row in 0..self.grid.len() {
-            for col in 0..self.grid[row].len() {
-                if self.grid[row][col] == 'A' {
-                    total += self.find_target_part2(row as i64, col as i64, letter_dict.clone()) as usize;
+        for update in &mut self.update {
+            unordered = false;
+
+            for i in 0..update.len() - 1 {
+                for j in i + 1..update.len() {
+                    if let Some(hs) = self.rules.get(&update[i]) {
+                        if hs.contains(&update[j]) {
+                            unordered = true;
+                            
+                            let temp = update[j];
+                            update[j] = update[i];
+                            update[i] = temp;
+                        }
+                    }
                 }
             }
+
+            if (unordered) {
+                let middle = update.len()/2;
+                total += update[middle];
+            }
+
         }
 
         total
-    }
-
-    fn find_target(&mut self, mut row: i64, mut col: i64, dir: (i64, i64)) -> bool {
-        
-        for letter in LETTERS {
-
-            if row < 0 || col < 0 || row >= self.grid.len() as i64|| col >= self.grid[row as usize].len() as i64 {
-                return false
-            }
-
-            if letter != self.grid[row as usize][col as usize] {
-                return false
-            }
-
-            row += dir.0;
-            col += dir.1;
-
-        }
-
-        true
-    }
-
-    fn find_target_part2(&mut self, mut row: i64, mut col: i64, target: std::collections::HashMap<char, bool>) -> bool {
-
-        let mut left_check = target.clone();
-        let mut right_check = target.clone();
-
-        for dir in DIR_LEFT_DIAGONAL {
-
-            let mut row_new = row;
-            let mut col_new = col;
-
-            row_new += dir.0;
-            col_new += dir.1;
-
-            if row_new < 0 || col_new < 0 || row_new >= self.grid.len() as i64 || col_new >= self.grid[row_new as usize].len() as i64 {
-                return false
-            }
-
-            let letter_check = self.grid[row_new as usize][col_new as usize];
-
-            if !left_check.contains_key(&letter_check){
-                return false
-            }
-
-            left_check.remove(&letter_check);
-        }
-
-        for dir in DIR_RIGHT_DIAGONAL {
-
-            let mut row_new = row;
-            let mut col_new = col;
-
-            row_new += dir.0;
-            col_new += dir.1;
-
-            if row_new < 0 || col_new < 0 || row_new >= self.grid.len() as i64 || col_new >= self.grid[row_new as usize].len() as i64 {
-                return false
-            }
-
-            let letter_check = self.grid[row_new as usize][col_new as usize];
-
-            if !right_check.contains_key(&letter_check){
-                return false
-            }
-
-            right_check.remove(&letter_check);
-        }
-
-        true
     }
 
 }
