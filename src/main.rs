@@ -3,61 +3,78 @@ use std::fs::File;
 use std::io::BufReader;
 use std::io::BufRead;
 use std::collections::HashMap;
-use std::collections::HashSet;
+
 struct Data {
-    update: Vec<Vec<u64>>, 
-    rules : HashMap<u64, HashSet<u64>>
+    grid: Vec<Vec<char>>, 
+    start : (usize, usize), 
+    orientation : Direction,
+    visited : HashMap<(usize, usize), bool>
+}
+
+enum Direction {
+    NORTH,
+    SOUTH,
+    WEST, 
+    EAST
 }
 
 impl Data {
     fn new() -> Self {
-        Data { update: Vec::new(), rules: HashMap::new()}
+        Data { grid: Vec::new(), start : (0,0), orientation: Direction::NORTH, visited: HashMap::new()}
     }
 
     fn parse(&mut self) {
-        let f = File::open("inputs\\input_day5.txt").unwrap();
+        let f = File::open("inputs\\input_day6.txt").unwrap();
         let reader = BufReader::new(&f);
 
         for line in reader.lines() {
-
-            if let Some((left, right)) = line.as_ref().unwrap().split_once("|") {
-                let left = left.parse::<u64>().unwrap();
-                let right = right.parse::<u64>().unwrap();
-
-                let e = self.rules.entry(right).or_default();
-                e.insert(left);
-                continue
-                
-            }
-
-            if line.as_ref().unwrap().len() == 0 {
-                continue
-            }
-
-            self.update.push(line.unwrap().split(",").map(|e| e.parse::<u64>().unwrap()).collect());
+            self.grid.push(line.unwrap().chars().collect());
         }
 
-        //println!("{:?}", self.rules);
+        let mut skip_flag = false;
+
+        for row in 0..self.grid.len() {
+            for col in 0..self.grid[row].len() {
+                if self.grid[row][col] == '^' {
+                    self.start.0 = row;
+                    self.start.1 = col;
+                    skip_flag = true;
+                    break;
+                }
+            }
+
+            if skip_flag {
+                break;
+            }
+        }
+
+        println!("{:?}", self.start);
     }
 
     fn part1(&mut self) -> u64 {
         
         let mut total = 0;
 
-        'next: for update in &self.update {
+        let mut row = self.start.0;
+        let mut col = self.start.1;
 
-            for i in 0..update.len() - 1 {
-                for j in i + 1..update.len() {
-                    if let Some(hs) = self.rules.get(&update[i]) {
-                        if hs.contains(&update[j]) {
-                            continue 'next
-                        }
+        while row >= 0 && row < self.grid.len() && col >= 0 && col < self.grid[row].len() {
+
+            match self.orientation {
+                Direction::NORTH => {
+                    if self.grid[row - 1][col] == '#' {
+                        self.orientation = Direction::EAST;
+
+                    } else {
+                        row = row - 1;
+
+                        self.visited.entry((row,col)).or_insert(true);
                     }
-                }
+                },
+                Direction::EAST => {},
+                Direction::SOUTH => {},
+                Direction::WEST => {},
             }
-
-            let middle = update.len()/2;
-            total += update[middle];
         }
 
         total
@@ -66,31 +83,6 @@ impl Data {
     fn part2(&mut self) -> u64 {
 
         let mut total = 0;
-        let mut unordered = false;
-
-        for update in &mut self.update {
-            unordered = false;
-
-            for i in 0..update.len() - 1 {
-                for j in i + 1..update.len() {
-                    if let Some(hs) = self.rules.get(&update[i]) {
-                        if hs.contains(&update[j]) {
-                            unordered = true;
-                            
-                            let temp = update[j];
-                            update[j] = update[i];
-                            update[i] = temp;
-                        }
-                    }
-                }
-            }
-
-            if (unordered) {
-                let middle = update.len()/2;
-                total += update[middle];
-            }
-
-        }
 
         total
     }
