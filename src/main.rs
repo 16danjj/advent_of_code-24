@@ -51,14 +51,16 @@ impl Data {
         println!("{:?}", self.start);
     }
 
-    fn part1(&mut self) -> u64 {
+    fn part1(&mut self) -> usize {
         
         let mut total = 0;
 
         let mut row = self.start.0;
         let mut col = self.start.1;
 
-        while row >= 0 && row < self.grid.len() && col >= 0 && col < self.grid[row].len() {
+        self.visited.entry((row,col)).or_insert(true);
+
+        while row > 0 && row < self.grid.len() - 1 && col > 0 && col < self.grid[row].len() - 1 {
 
             match self.orientation {
                 Direction::NORTH => {
@@ -71,11 +73,42 @@ impl Data {
                         self.visited.entry((row,col)).or_insert(true);
                     }
                 },
-                Direction::EAST => {},
-                Direction::SOUTH => {},
-                Direction::WEST => {},
+                Direction::EAST => {
+                    if self.grid[row][col + 1] == '#' {
+                        self.orientation = Direction::SOUTH;
+
+                    } else {
+                        col = col + 1;
+
+                        self.visited.entry((row,col)).or_insert(true);
+                    }
+                },
+                Direction::SOUTH => {
+                    if self.grid[row + 1][col] == '#' {
+                        self.orientation = Direction::WEST;
+
+                    } else {
+                        row = row + 1;
+
+                        self.visited.entry((row,col)).or_insert(true);
+                    }
+                },
+                Direction::WEST => {
+                    if self.grid[row][col - 1] == '#' {
+                        self.orientation = Direction::NORTH;
+
+                    } else {
+                        col = col - 1;
+
+                        self.visited.entry((row,col)).or_insert(true);
+                    }
+                },
             }
         }
+
+        total = self.visited.len();
+
+        //println!("{:?}", self.visited);
 
         total
     }
