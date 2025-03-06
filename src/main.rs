@@ -4,113 +4,44 @@ use std::io::BufReader;
 use std::io::BufRead;
 use std::collections::HashMap;
 use std::collections::HashSet;
+use std::u64;
 
 struct Data {
-    grid: Vec<Vec<char>>, 
-    start : (usize, usize), 
-    orientation : Direction,
-    visited : HashMap<(usize, usize), bool>
+    results : Vec<u64>,
+    configurations : Vec<Vec<u64>>
 }
 
-#[derive(PartialEq, Eq, Hash, Clone)]
-enum Direction {
-    NORTH,
-    SOUTH,
-    WEST, 
-    EAST
-}
 
 impl Data {
     fn new() -> Self {
-        Data { grid: Vec::new(), start : (0,0), orientation: Direction::NORTH, visited: HashMap::new()}
+        Data { results : Vec::new(), configurations : Vec::new() }
     }
 
     fn parse(&mut self) {
-        let f = File::open("inputs\\input_day6.txt").unwrap();
+        let f = File::open("inputs\\input_day7.txt").unwrap();
         let reader = BufReader::new(&f);
 
         for line in reader.lines() {
-            self.grid.push(line.unwrap().chars().collect());
+            let (left, right) = line.as_ref().unwrap().split_once(": ").unwrap();
+            self.results.push(left.parse::<u64>().unwrap());
+            self.configurations.push(right.split(' ').filter_map(|x| x.parse::<u64>().ok()).collect());
         }
 
-        let mut skip_flag = false;
-
-        for row in 0..self.grid.len() {
-            for col in 0..self.grid[row].len() {
-                if self.grid[row][col] == '^' {
-                    self.start.0 = row;
-                    self.start.1 = col;
-                    skip_flag = true;
-                    break;
-                }
-            }
-
-            if skip_flag {
-                break;
-            }
-        }
-
-        println!("{:?}", self.start);
     }
 
     fn part1(&mut self) -> usize {
         
         let mut total = 0;
 
-        let mut row = self.start.0;
-        let mut col = self.start.1;
+        for i in 0..self.results.len() {
 
-        self.visited.entry((row,col)).or_insert(true);
+            let mut op:  HashMap<&str, Vec<u64>> = HashMap::new();
 
-        while row > 0 && row < self.grid.len() - 1 && col > 0 && col < self.grid[row].len() - 1 {
-
-            match self.orientation {
-                Direction::NORTH => {
-                    if self.grid[row - 1][col] == '#' {
-                        self.orientation = Direction::EAST;
-
-                    } else {
-                        row = row - 1;
-
-                        self.visited.entry((row,col)).or_insert(true);
-                    }
-                },
-                Direction::EAST => {
-                    if self.grid[row][col + 1] == '#' {
-                        self.orientation = Direction::SOUTH;
-
-                    } else {
-                        col = col + 1;
-
-                        self.visited.entry((row,col)).or_insert(true);
-                    }
-                },
-                Direction::SOUTH => {
-                    if self.grid[row + 1][col] == '#' {
-                        self.orientation = Direction::WEST;
-
-                    } else {
-                        row = row + 1;
-
-                        self.visited.entry((row,col)).or_insert(true);
-                    }
-                },
-                Direction::WEST => {
-                    if self.grid[row][col - 1] == '#' {
-                        self.orientation = Direction::NORTH;
-
-                    } else {
-                        col = col - 1;
-
-                        self.visited.entry((row,col)).or_insert(true);
-                    }
-                },
-            }
+            let add = op.entry("+").or_default();
+            add.push(self.configurations[i][0] + self.configurations[i][1]);
+            let mult = op.entry("*").or_default();
+            mult.push(self.configurations[i][0] * self.configurations[i][1]);
         }
-
-        total = self.visited.len();
-
-        //println!("{:?}", self.visited);
 
         total
     }
@@ -118,64 +49,7 @@ impl Data {
     fn part2(&mut self) -> u64 {
 
         let mut total = 0;
-    
-        for pos in self.visited.keys() {
-            self.orientation = Direction::NORTH;
 
-            let mut row = self.start.0;
-            let mut col = self.start.1;
-            let mut loop_detector = HashSet::new();
-
-            if *pos == self.start {
-                continue
-            }
-
-            while row > 0 && row < self.grid.len() - 1 && col > 0 && col < self.grid[row].len() - 1 {
-
-                if loop_detector.insert(((row, col), self.orientation.clone())) {
-
-                    match self.orientation {
-                        Direction::NORTH => {
-                            if self.grid[row - 1][col] == '#' || (row - 1, col) == *pos {
-                                self.orientation = Direction::EAST;
-        
-                            } else {
-                                row = row - 1;
-                            }
-                        },
-                        Direction::EAST => {
-                            if self.grid[row][col + 1] == '#' || (row, col + 1) == *pos {
-                                self.orientation = Direction::SOUTH;
-        
-                            } else {
-                                col = col + 1;
-    
-                            }
-                        },
-                        Direction::SOUTH => {
-                            if self.grid[row + 1][col] == '#' || (row + 1, col) == *pos {
-                                self.orientation = Direction::WEST;
-        
-                            } else {
-                                row = row + 1;
-                            }
-                        },
-                        Direction::WEST => {
-                            if self.grid[row][col - 1] == '#' || (row, col - 1) == *pos {
-                                self.orientation = Direction::NORTH;
-        
-                            } else {
-                                col = col - 1;
-                            }
-                        },
-                    }
-
-                } else {
-                    total += 1;
-                    break;
-                }
-            }
-        }
         total
     }
 
