@@ -3,6 +3,7 @@ use std::fs::File;
 use std::io::BufReader;
 use std::io::BufRead;
 use std::collections::HashMap;
+use std::collections::HashSet;
 
 struct Data {
     grid: Vec<Vec<char>>, 
@@ -11,6 +12,7 @@ struct Data {
     visited : HashMap<(usize, usize), bool>
 }
 
+#[derive(PartialEq, Eq, Hash, Clone)]
 enum Direction {
     NORTH,
     SOUTH,
@@ -116,7 +118,64 @@ impl Data {
     fn part2(&mut self) -> u64 {
 
         let mut total = 0;
+    
+        for pos in self.visited.keys() {
+            self.orientation = Direction::NORTH;
 
+            let mut row = self.start.0;
+            let mut col = self.start.1;
+            let mut loop_detector = HashSet::new();
+
+            if *pos == self.start {
+                continue
+            }
+
+            while row > 0 && row < self.grid.len() - 1 && col > 0 && col < self.grid[row].len() - 1 {
+
+                if loop_detector.insert(((row, col), self.orientation.clone())) {
+
+                    match self.orientation {
+                        Direction::NORTH => {
+                            if self.grid[row - 1][col] == '#' || (row - 1, col) == *pos {
+                                self.orientation = Direction::EAST;
+        
+                            } else {
+                                row = row - 1;
+                            }
+                        },
+                        Direction::EAST => {
+                            if self.grid[row][col + 1] == '#' || (row, col + 1) == *pos {
+                                self.orientation = Direction::SOUTH;
+        
+                            } else {
+                                col = col + 1;
+    
+                            }
+                        },
+                        Direction::SOUTH => {
+                            if self.grid[row + 1][col] == '#' || (row + 1, col) == *pos {
+                                self.orientation = Direction::WEST;
+        
+                            } else {
+                                row = row + 1;
+                            }
+                        },
+                        Direction::WEST => {
+                            if self.grid[row][col - 1] == '#' || (row, col - 1) == *pos {
+                                self.orientation = Direction::NORTH;
+        
+                            } else {
+                                col = col - 1;
+                            }
+                        },
+                    }
+
+                } else {
+                    total += 1;
+                    break;
+                }
+            }
+        }
         total
     }
 
