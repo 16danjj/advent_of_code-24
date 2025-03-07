@@ -33,6 +33,7 @@ impl Equations {
             }
 
             let mut pos = ops.len() - 1;
+            println!("before second loop : {:?}", ops);
 
             loop {
                 if ops[pos] == '+' {
@@ -40,13 +41,15 @@ impl Equations {
                     break;
                 } else if pos == 0 {
 
-                    println!("{:?}", ops);
+                    println!(" returning EMPTY : {:?}", ops);
                     return None;
                 }
 
                 ops[pos] = '+';
                 pos -= 1;
             }
+
+            println!("after second loop : {:?}", ops);
         }
 
     }
