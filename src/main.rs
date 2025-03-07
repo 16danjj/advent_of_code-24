@@ -4,46 +4,87 @@ use std::io::BufReader;
 use std::io::BufRead;
 use std::collections::HashMap;
 use std::collections::HashSet;
+use std::str::FromStr;
 use std::u64;
 
 struct Data {
-    results : Vec<u64>,
-    configurations : Vec<Vec<u64>>
+    equations : Vec<Equations>
+}
+
+#[derive(Debug)]
+struct Equations {
+    value : usize,
+    list : Vec<usize>
+}
+
+impl Equations {
+    fn solution(&self) -> Option<usize> {
+        let mut ops = vec!['+'; self.list.len() - 1];
+        loop {
+            let total = ops.iter().zip(&self.list[1..]).fold(self.list[0], |val, (op, num)| match op {
+                '+' => val + *num, 
+                '*' => val * *num, 
+                _ => panic!("invalid op {op}")
+
+            });
+
+            if total == self.value {
+                return Some(total)
+            }
+
+            let mut pos = ops.len() - 1;
+
+            loop {
+                if ops[pos] == '+' {
+                    ops[pos] = '*';
+                    break;
+                } else if pos == 0 {
+
+                    println!("{:?}", ops);
+                    return None;
+                }
+
+                ops[pos] = '+';
+                pos -= 1;
+            }
+        }
+
+    }
+}
+
+impl FromStr for Equations {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let (left, right) = s.split_once(": ").unwrap();
+        let value = left.parse().unwrap();
+        let list = right.split(' ').map(|num| num.parse().unwrap()).collect();
+
+        Ok(Self { value, list })
+    }
 }
 
 
 impl Data {
     fn new() -> Self {
-        Data { results : Vec::new(), configurations : Vec::new() }
+        Data { equations : Vec::new() }
     }
 
     fn parse(&mut self) {
         let f = File::open("inputs\\input_day7.txt").unwrap();
         let reader = BufReader::new(&f);
 
-        for line in reader.lines() {
-            let (left, right) = line.as_ref().unwrap().split_once(": ").unwrap();
-            self.results.push(left.parse::<u64>().unwrap());
-            self.configurations.push(right.split(' ').filter_map(|x| x.parse::<u64>().ok()).collect());
-        }
+        self.equations = reader.lines().into_iter().map(|line| line.unwrap().parse().unwrap()).collect();
 
+        //println!("{:?}", self.equations);
     }
 
     fn part1(&mut self) -> usize {
         
-        let mut total = 0;
+        //let mut total = 0;
+        //total
 
-        for i in 0..self.results.len() {
-
-            let mut op:  HashMap<&str, Vec<u64>> = HashMap::new();
-
-            let add = op.entry("+").or_default();
-            add.push(self.configurations[i][0] + self.configurations[i][1]);
-            let mult = op.entry("*").or_default();
-            mult.push(self.configurations[i][0] * self.configurations[i][1]);
-        }
-
-        total
+        self.equations.iter().filter_map(|x| x.solution()).sum::<usize>()
     }
 
     fn part2(&mut self) -> u64 {
