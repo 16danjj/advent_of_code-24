@@ -8,117 +8,164 @@ use std::str::FromStr;
 use std::u64;
 
 struct Data {
-    grid : Vec<Vec<char>>, 
-    map : HashMap<char, Vec<(i64,i64)>>,
-    rows : usize, 
-    cols : usize,
-    result : HashSet<(i64, i64)>
+    disk : Vec<char>,
+    detailed_disk : Vec<i64>
 }
 
 
 impl Data {
     fn new() -> Self {
-        Data { grid : Vec::new(), map : HashMap::new(), rows : 0, cols : 0, result : HashSet::new()}
+        Data { disk : Vec::new(), detailed_disk : Vec::new()}
     }
 
     fn parse(&mut self) {
-        let f = File::open("inputs\\input_day8.txt").unwrap();
+        let f = File::open("inputs\\input_day9.txt").unwrap();
         let reader = BufReader::new(&f);
 
         for line in reader.lines() {
-            self.grid.push(line.unwrap().chars().collect());
+            self.disk.extend(line.unwrap().chars());
         }
 
-        self.rows = self.grid.len();
-        self.cols = self.grid[0].len();
+        //println!("{:?}", self.disk);
 
-        for (row, line) in self.grid.iter().enumerate() {
-            for (col, ch) in line.iter().enumerate() {
-                if *ch != '.' {
-                    let entry = self.map.entry(*ch).or_default();
-                    entry.push((row as i64, col as i64));
-                }
-
-            }
-        }
     }
 
-    fn part1(&mut self) -> usize {
+    fn part1(&mut self) -> i64 {
         
-        let mut total = HashSet::new();
+        let mut disk:Vec<i64>= Vec::new();
+        let mut file_no = 0;
 
-        for list in self.map.values() {
+        let mut iter = self.disk.iter();
 
-            for i in 0..list.len() - 1 {
-                for j in i+1..list.len() {
-                    let rise = list[j].0 - list[i].0;
-                    let run = list[j].1 - list[i].1;
+        while let Some(len) = iter.next() {
+            let len = *len as u8 - b'0';
+            disk.extend(vec![file_no; len as usize]);
+            file_no += 1;
 
-                    let p1 = (list[i].0 - rise, list[i].1 - run);
-                    let p2 = (list[j].0 + rise, list[j].1 + run);
-
-                    if self.in_bound(p1) {
-                        total.insert(p1);
-                    }
-
-                    if self.in_bound(p2) {
-                        total.insert(p2);
-                    }
-
-
-                }
+            if let Some(gap) = iter.next() {
+                let gap = *gap as u8 - b'0';
+                disk.extend(vec![-1; gap as usize]);
             }
         }
 
+        
+
+        while let Some(free_index) = disk.iter().position(|val| *val == -1 ) {
+
+            while let Some(val) = disk.pop() {
+                if val == -1 {
+                    continue
+                }
+
+                disk[free_index] = val;
+                break;
+            }
+        }
+        
+
+        disk.iter().enumerate().map(|(idx, val)| idx as i64 * val).sum::<i64>()
+
+    }
+
+    fn part2(&mut self) -> i64 {
+
+        let mut disk:Vec<i64>= Vec::new();
+        let mut file_no = 0;
+
+        let mut iter = self.disk.iter();
+
+        
+
+        while let Some(len) = iter.next() {
+            let len = *len as u8 - b'0';
+            disk.extend(vec![file_no; len as usize]);
+            file_no += 1;
+
+            if let Some(gap) = iter.next() {
+                let gap = *gap as u8 - b'0';
+                disk.extend(vec![-1; gap as usize]);
+            }
+        }
+
+
+        let mut right = disk.len() - 1;
+        self.detailed_disk = disk;
     
-        total.len()
+        while right != 0 {
 
+            right = self.allocate_full_files(right);
+        }
+
+        self.detailed_disk.iter().enumerate().filter_map(|(idx, val)| if *val != -1 {Some(idx as i64 * val)} else {None} ).sum::<i64>()
         
     }
 
-    fn part2(&mut self) -> usize {
+    fn allocate_full_files(&mut self, mut right: usize) -> usize {
 
-        //let mut total = Vec::new();
+        let mut file_length = 1;
+        let mut right_returned = 0;
 
-        for list in self.map.values() {
-            for i in 0..list.len() - 1 {
-                for j in i+1..list.len() {
-                    let rise = list[j].0 - list[i].0;
-                    let run = list[j].1 - list[i].1;
-                    
-                    let mut p1 = (list[i].0, list[i].1);
-                    
-                    while self.in_bound(p1) {
-                        self.result.insert(p1);
-            
-                        p1.0 = p1.0 - rise;
-                        p1.1 = p1.1 - run;
-                    }
+        loop {
 
-                    let mut p2 = (list[j].0, list[j].1);
+            if right != 0 {
 
-                    while self.in_bound(p2) {
-                        self.result.insert(p2);
-            
-                        p2.0 = p2.0 + rise;
-                        p2.1 = p2.1 + run;
-                    }
+                if self.detailed_disk[right] == self.detailed_disk[right - 1] {
+                    file_length += 1;
+                    right -= 1;
                 }
+
+                else {
+                    right_returned = right - 1;
+                    break
+                }
+
+            } else {
+                break
+            } 
+
+        }
+
+        let mut free_space = 0;
+        let mut left = 0;
+        
+
+        while left < right {
+            if free_space == file_length {
+                break;
+            }
+
+            if self.detailed_disk[left] == -1 {
+                free_space += 1;
+                left += 1;
+                continue;
+            } else {
+                free_space = 0;
+                left += 1;
             }
         }
 
-        self.result.len()
-
-    }
-
-    fn in_bound(&self, pos: (i64,i64)) -> bool {
-
-        if pos.0 >= 0 && pos.0 < self.rows as i64 && pos.1 >= 0 && pos.1 < self.cols as i64 {
-            return true
+        if free_space != file_length {
+            return right_returned
         }
 
-        false
+
+        let mut start_index = left - free_space;
+        let mut temp_right = right;
+
+        while file_length != 0 {
+
+            self.detailed_disk[start_index] = self.detailed_disk[temp_right];
+            self.detailed_disk[temp_right] = -1;
+
+            temp_right += 1;
+            start_index += 1;
+            file_length -= 1;
+
+        }
+
+        right_returned
     }
+
 
 }
 
