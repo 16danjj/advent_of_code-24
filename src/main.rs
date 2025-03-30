@@ -8,96 +8,97 @@ use std::str::FromStr;
 use std::u64;
 
 struct Data {
-    stones : Vec<Stone>
+    grid : Vec<Vec<char>>,
+    rows : usize,
+    cols : usize,
+    visited : HashSet<(usize,usize)>
 }
 
-impl Stone {
-    fn split(&self) -> Vec<Self> {
-
-        if self.val == 0 {
-            return vec![Self {val : 1}]
-        }
-
-        let conv_string = format!("{}", self.val);
-
-        if conv_string.len() % 2 == 0 {
-            let mid = conv_string.len() / 2;
-            let split_1 = &conv_string[0..mid];
-            let split_2 = &conv_string[mid..];
-
-            return vec![Self {val : split_1.parse().unwrap()}, Self {val : split_2.parse().unwrap()}]
-        } else {
-            return vec![Self { val: self.val * 2024}]
-        }
-    }
-}
 
 impl Data {
     fn new() -> Self {
-        Data { stones : Vec::new()}
+        Data { grid : Vec::new(), rows : 0, cols : 0, visited: HashSet::new()}
     }
 
     fn parse(&mut self) {
-        let f = File::open("inputs\\input_day11.txt").unwrap();
+        let f = File::open("inputs\\input_day12.txt").unwrap();
         let reader = BufReader::new(&f);
 
         for line in reader.lines() {
-            self.stones = line.unwrap().split(' ').map(|stone| stone.parse().unwrap()).collect();
+            self.grid.push(line.unwrap().chars().collect())
         }
 
-        println!("{:?}", self.stones);
+        self.rows = self.grid.len();
+        self.cols = self.grid[0].len();
+
+        //println!("{:?}", );
+
 
     }
     fn part1(&mut self) -> usize {
         
-        let mut current = self.stones.clone();
+       let mut cost = 0;
 
-        for _ in 0..25 {
+       for row in 0..self.grid.len() {
+        for col in 0.. self.grid[row].len() {
 
-            let mut next = Vec::new();
-
-            for stone in current {
-                next.extend(stone.split());
+            if self.visited.contains(&(row, col)) {
+                continue;
             }
 
-            current = next;
+            cost += self.find_cost(row, col);
         }
+       }
 
-        current.len()
+       cost
     }
 
     fn part2(&mut self) -> usize {
 
-        let mut current = self.stones.iter().map(|stone| (stone.clone(), 1)).collect::<HashMap<Stone, usize>>();
-        
-        for _ in 0..75 {
-            let mut next = HashMap::new();
+        0
+    }
 
-            for (stone, count) in current {
-                for new_stone in stone.split() {
-                    let entry = next.entry(new_stone).or_default();
-                    *entry += count;
+    fn find_cost(&mut self, row: usize, col: usize) -> usize {
+
+        let mut area = 0;
+        let mut perimeter = 0;
+        let mut stack = Vec::new();
+
+        self.visited.insert((row,col));
+        stack.push((row,col));
+
+        while let Some((row, col)) = stack.pop() {
+            let plot = self.grid[row][col];
+            area += 1;
+
+            for dir in [(1, 0), (-1, 0), (0, 1), (0, -1)] {
+
+                let new_row = row as i64 + dir.0;
+                let new_col = col as i64 + dir.1;
+
+                if new_row < 0 || new_row >= self.rows as i64 || new_col < 0 || new_col >= self.cols as i64{
+                    perimeter += 1; 
+                    continue;
                 }
+
+                if self.grid[new_row as usize][new_col as usize] != plot {
+                    perimeter += 1;
+                    continue;
+                }
+
+                
+                if self.visited.insert((new_row as usize, new_col as usize)){
+                    stack.push((new_row as usize, new_col as usize));
+                }
+
             }
-            current = next;
         }
-        current.values().sum()
+
+        area * perimeter
     }
     
 }
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
-struct Stone {
-    val : usize
-}
-
-impl FromStr for Stone {
-    type Err = ();
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(Self { val: s.parse().unwrap() })
-    }
-}
 
 
 #[cfg(test)]
