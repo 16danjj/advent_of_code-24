@@ -18,7 +18,7 @@ impl Data {
         Data { list: Vec::new() }
     }
 
-    fn search(&self, limit: usize) -> Option<(Vec<(i64, i64)>, i64)> {
+    fn search(&self, limit: usize) -> Option<(Vec<(i64, i64)>, i64)>{
         let memory: HashSet<&(i64, i64)> = self.list.iter().take(limit).collect();
         astar(
             &(0i64, 0i64),
@@ -31,8 +31,8 @@ impl Data {
             },
             |state| (70 - state.0) + (70 - state.1),
             |state| *state == (70, 70),
-        )
-    }
+        ) 
+    }   
 
     fn parse(&mut self) {
         let f = File::open("inputs\\input_day18.txt").unwrap();
@@ -50,18 +50,21 @@ impl Data {
         //println!("{:?}", &self.list[0..20]);
     }
     fn part1(&mut self) -> i64 {
+
         let x = self.search(1024);
 
         x.unwrap().1
     }
 
-    fn part2(&mut self) -> (i64, i64) {
-        let mut coordinates: (i64, i64) = (0, 0);
+    fn part2(&mut self) -> (i64,i64) {
 
+        let mut coordinates: (i64, i64) = (0,0);
+        
         for limit in 1024..self.list.len() {
             if self.search(limit).is_none() {
-                coordinates = self.list[limit - 1];
-                break;
+                 coordinates = self.list[limit - 1];
+                 break;
+                
             }
         }
 
